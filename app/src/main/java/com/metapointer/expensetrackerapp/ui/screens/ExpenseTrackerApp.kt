@@ -3,7 +3,9 @@ package com.metapointer.expensetrackerapp.ui.screens
 
 import android.util.Log
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -11,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.metapointer.expensetrackerapp.ui.navigation.ExpenseTrackerNavigation
@@ -97,17 +100,12 @@ fun ExpenseTrackerApp() {
             }
         },
         floatingActionButton = {
-            // Show FAB only on expense list screen
             if (currentScreen == Screen.ExpenseList) {
-                FloatingActionButton(
-                    onClick = navigateToEntry,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Expense"
-                    )
-                }
+                ExtendedFloatingActionButton(
+                    onClick = { navigateToEntry() },
+                    icon = { Icon(Icons.Filled.Add, "Localized description") },
+                    text = { Text(text = "Add Expenses") },
+                )
             }
         }
     ) { innerPadding ->
@@ -116,7 +114,7 @@ fun ExpenseTrackerApp() {
         ) {
             ExpenseTrackerNavigation(
                 navController = navController,
-                onNavigateToEntry = navigateToEntry // Remove the extra braces
+                onNavigateToEntry = navigateToEntry
             )
         }
     }

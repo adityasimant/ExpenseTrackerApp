@@ -32,6 +32,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -71,4 +72,11 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
     kapt ("androidx.room:room-compiler:$room_version")
+
+    // Material extended icons
+    implementation("androidx.compose.material:material-icons-extended")
+
+    // Charts lib
+    implementation ("io.github.ehsannarmani:compose-charts:0.1.8")
+
 }

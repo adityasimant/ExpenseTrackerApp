@@ -1,4 +1,8 @@
 # Smart Daily Expense Tracker – Jetpack Compose (MVVM)
+
+<img width="1842" height="1177" alt="Frame 34" src="https://github.com/user-attachments/assets/c49ac130-c319-4f7a-8173-05ba21d210a4" />
+
+
 The Smart Daily Expense Tracker is a multi-screen app designed for small business owners to easily capture, view, analyze, and export their daily expenses. It addresses the common problem of expenses being lost on WhatsApp chats or paper, helping users maintain accurate cash flow records.
 The app is built with Jetpack Compose and follows a clean MVVM architecture for scalability and maintainability.
 

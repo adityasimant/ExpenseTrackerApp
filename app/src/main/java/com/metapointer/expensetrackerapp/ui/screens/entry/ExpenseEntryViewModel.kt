@@ -6,6 +6,7 @@ import com.metapointer.expensetrackerapp.data.model.ExpenseCategory
 import com.metapointer.expensetrackerapp.domain.usecase.AddExpenseUseCase
 import com.metapointer.expensetrackerapp.domain.usecase.GetTodayTotalUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,22 +30,39 @@ class ExpenseEntryViewModel @Inject constructor(
         loadTodayTotal()
     }
 
+    private fun validateAndUpdateState() {
+        val currentState = _uiState.value
+        val validationState = ExpenseFormValidator.validateForm(
+            title = currentState.title,
+            amount = currentState.amount,
+            category = currentState.selectedCategory,
+            notes = currentState.notes
+        )
+
+        _uiState.value = currentState.copy(validationState = validationState)
+    }
+
     fun onTitleChanged(title: String) {
         _uiState.update { it.copy(title = title) }
+        validateAndUpdateState()
     }
 
     fun onAmountChanged(amount: String) {
         _uiState.update { it.copy(amount = amount) }
+        validateAndUpdateState()
+
     }
 
     fun onCategorySelected(category: ExpenseCategory) {
         _uiState.update { it.copy(selectedCategory = category) }
+        validateAndUpdateState()
+
     }
 
     fun onNotesChanged(notes: String) {
-        if (notes.length <= 100) {
-            _uiState.update { it.copy(notes = notes) }
-        }
+         _uiState.update { it.copy(notes = notes) }
+        validateAndUpdateState()
+
     }
 
     fun onReceiptImageSelected(imagePath: String?) {
@@ -53,6 +71,22 @@ class ExpenseEntryViewModel @Inject constructor(
 
     fun addExpense() {
         val currentState = _uiState.value
+        val validationState = ExpenseFormValidator.validateForm(
+            title = currentState.title,
+            amount = currentState.amount,
+            category = currentState.selectedCategory,
+            notes = currentState.notes
+        )
+
+        if (!validationState.isFormValid) {
+            _uiState.update {
+                it.copy(
+                    validationState = validationState,
+                    errorMessage = "Please fix the errors below"
+                )
+            }
+            return
+        }
 
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 

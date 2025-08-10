@@ -1,25 +1,21 @@
-package com.metapointer.expensetrackerapp.ui.screens
+package com.metapointer.expensetrackerapp.ui.screens.main
 
 
-import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.metapointer.expensetrackerapp.ui.navigation.ExpenseTrackerNavigation
 import com.metapointer.expensetrackerapp.ui.navigation.Screen
 import com.metapointer.expensetrackerapp.ui.navigation.bottomNavItems
-import dagger.hilt.android.lifecycle.HiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +28,11 @@ fun ExpenseTrackerApp() {
     // Function to navigate to add expense screen
     val navigateToEntry = {
         navController.navigate(Screen.ExpenseEntry.route)
+    }
+
+    // navigate to reports
+    val navigateToReports = {
+        navController.navigate(Screen.ExpenseReport.route)
     }
 
     // Function to navigate back
@@ -49,7 +50,6 @@ fun ExpenseTrackerApp() {
                             Screen.ExpenseEntry -> "Add Expense"
                             Screen.ExpenseReport -> "Expense Reports"
                         },
-                        fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
@@ -83,12 +83,6 @@ fun ExpenseTrackerApp() {
                             onClick = {
                                 if (currentScreen != item.screen) {
                                     navController.navigate(item.screen.route) {
-                                        // Pop up to the start destination to avoid building up a large stack
-                                        popUpTo(Screen.ExpenseList.route) {
-                                            saveState = true
-                                        }
-                                        // Avoid multiple copies of the same destination
-                                        launchSingleTop = true
                                         // Restore state when re-selecting a previously selected item
                                         restoreState = true
                                     }
@@ -98,23 +92,15 @@ fun ExpenseTrackerApp() {
                     }
                 }
             }
-        },
-        floatingActionButton = {
-            if (currentScreen == Screen.ExpenseList) {
-                ExtendedFloatingActionButton(
-                    onClick = { navigateToEntry() },
-                    icon = { Icon(Icons.Filled.Add, "Localized description") },
-                    text = { Text(text = "Add Expenses") },
-                )
-            }
         }
     ) { innerPadding ->
         Box(
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface).padding(innerPadding)
         ) {
             ExpenseTrackerNavigation(
                 navController = navController,
-                onNavigateToEntry = navigateToEntry
+                onNavigateToEntry = navigateToEntry,
+                onNavigateToReports = navigateToReports
             )
         }
     }

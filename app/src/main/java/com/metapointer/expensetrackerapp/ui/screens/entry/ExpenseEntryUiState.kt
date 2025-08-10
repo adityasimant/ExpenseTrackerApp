@@ -1,6 +1,7 @@
 package com.metapointer.expensetrackerapp.ui.screens.entry
 
 import com.metapointer.expensetrackerapp.data.model.ExpenseCategory
+import com.metapointer.expensetrackerapp.ui.screens.entry.model.FormValidationState
 
 data class ExpenseEntryUiState(
     val title: String = "",
@@ -11,5 +12,6 @@ data class ExpenseEntryUiState(
     val isLoading: Boolean = false,
     val isExpenseAdded: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val validationState: FormValidationState = FormValidationState()
 )

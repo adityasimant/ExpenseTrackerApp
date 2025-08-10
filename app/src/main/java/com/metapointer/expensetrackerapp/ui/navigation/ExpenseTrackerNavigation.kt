@@ -12,16 +12,22 @@ import com.metapointer.expensetrackerapp.ui.screens.report.ExpenseReportScreen
 @Composable
 fun ExpenseTrackerNavigation(
     navController: NavHostController,
-    onNavigateToEntry: () -> Unit
+    onNavigateToEntry: () -> Unit,
+    onNavigateToReports: () -> Unit
 ) {
     NavHost(
         navController = navController,
         startDestination = Screen.ExpenseList.route
     ) {
         composable(Screen.ExpenseList.route) {
-            ExpenseListScreen(){
-                onNavigateToEntry()
-            }
+            ExpenseListScreen(
+                onAddExpenseClick = {
+                    onNavigateToEntry()
+                },
+                onViewReportsClick = {
+                    onNavigateToReports()
+                }
+            )
         }
 
         composable(Screen.ExpenseEntry.route) {

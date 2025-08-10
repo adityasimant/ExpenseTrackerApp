@@ -2,6 +2,10 @@ package com.metapointer.expensetrackerapp.ui.screens.list
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.Animatable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,44 +19,55 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.metapointer.expensetrackerapp.data.model.Expense
 import com.metapointer.expensetrackerapp.data.model.ExpenseCategory
 import com.metapointer.expensetrackerapp.ui.screens.entry.emoji
+import com.metapointer.expensetrackerapp.ui.screens.main.TopBarState
+import com.metapointer.expensetrackerapp.utils.formatAmountIndian
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.exp
 
-
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ExpenseListScreen(
     viewModel: ExpenseListViewModel = hiltViewModel(),
-    onAddExpenseClick: () -> Unit
+    onAddExpenseClick: () -> Unit,
+    onViewReportsClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val expenses by viewModel.expenses.collectAsState()
@@ -69,7 +84,6 @@ fun ExpenseListScreen(
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate() == selectedDate
         }
-
     }
 
     val groupedExpenses = remember(filteredExpenses, groupBy) {
@@ -88,55 +102,8 @@ fun ExpenseListScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-
-        // Group By Menu
-        TextButton(
-            onClick = {
-                showGroupByMenu = true
-            }
-        ) {
-            Icon(
-                Icons.Filled.Sort,
-                contentDescription = "Filter",
-                modifier = Modifier.size(ButtonDefaults.IconSize),
-            )
-            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-            Text("Filter")
-        }
-        Box {
-//            IconButton(onClick = {  }) {
-//                Icon(
-//                    imageVector = Icons.Default.Sort,
-//                    contentDescription = "Group by"
-//                )
-//            }
-
-            DropdownMenu(
-                expanded = showGroupByMenu,
-                onDismissRequest = { showGroupByMenu = false }
-            ) {
-                GroupByOption.values().forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.displayName) },
-                        onClick = {
-                            groupBy = option
-                            showGroupByMenu = false
-                        },
-                        leadingIcon = {
-                            if (groupBy == option) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    )
-                }
-            }
-        }
 
         Column(
             modifier = Modifier
@@ -149,10 +116,62 @@ fun ExpenseListScreen(
                 todayTotal = if (selectedDate == LocalDate.now()) todayTotal else
                     filteredExpenses.sumOf { it.amount },
                 expenseCount = filteredExpenses.size,
+                addExpense = {
+                    onAddExpenseClick()
+                },
+                onNavigateReports = {
+                    onViewReportsClick()
+                },
                 onDateClick = { showDatePicker = true }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Expenses")
+                TextButton(
+                    onClick = {
+                        showGroupByMenu = true
+                    }
+                ) {
+                    Icon(
+                        Icons.Filled.Sort,
+                        contentDescription = "Filter",
+                        modifier = Modifier.size(ButtonDefaults.IconSize),
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("Filter")
+                }
+            }
+            Box {
+                DropdownMenu(
+                    expanded = showGroupByMenu,
+                    onDismissRequest = { showGroupByMenu = false }
+                ) {
+                    GroupByOption.values().forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.displayName) },
+                            onClick = {
+                                groupBy = option
+                                showGroupByMenu = false
+                            },
+                            leadingIcon = {
+                                if (groupBy == option) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Content
             if (filteredExpenses.isEmpty()) {
@@ -344,85 +363,121 @@ private fun DateSelectorCard(
     selectedDate: LocalDate,
     todayTotal: Double,
     expenseCount: Int,
+    addExpense: () -> Unit,
+    onNavigateReports: () -> Unit,
     onDateClick: () -> Unit
 ) {
+    var isExpanded by remember { mutableStateOf(true) }
+    val rotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                4.dp
-            )
-        ),
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize() // Smooth expand/collapse animation
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Column {
                     Text(
                         text = when (selectedDate) {
                             LocalDate.now() -> "Today"
                             LocalDate.now().minusDays(1) -> "Yesterday"
                             else -> selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
                         },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
                     )
                     Text(
                         text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE")),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                TextButton(
-                    onClick = {
-                        onDateClick()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AnimatedVisibility(!isExpanded) {
+                        Text("₹${formatAmountIndian(todayTotal)}")
                     }
-                ) {
-                    Icon(
-                        Icons.Filled.DateRange,
-                        contentDescription = "Select Date",
-                        modifier = Modifier.size(ButtonDefaults.IconSize),
-                    )
-                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Text("Select Date")
+                    AnimatedVisibility(isExpanded) {
+                        TextButton(onClick = onDateClick) {
+                            Icon(
+                                Icons.Filled.DateRange,
+                                contentDescription = "Select Date",
+                                modifier = Modifier.size(ButtonDefaults.IconSize),
+                            )
+                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                            Text("Select Date")
+                        }
+                    }
+
+                    IconButton(onClick = { isExpanded = !isExpanded }) {
+                        Icon(
+                            Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                            modifier = Modifier.rotate(rotation)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                SummaryItem(
-                    label = "Total Spent",
-                    value = "₹${String.format("%.2f", todayTotal)}",
-                    icon = Icons.Default.AccountBalanceWallet
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    SummaryItem(
+                        label = "Total Spent",
+                        value = "₹${formatAmountIndian(todayTotal)}",
+                        icon = Icons.Default.AccountBalanceWallet
+                    )
 
-                VerticalDivider(
-                    modifier = Modifier
-                        .height(40.dp)
-                        .width(1.dp),
-                )
+                    VerticalDivider(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .width(1.dp),
+                    )
 
-                SummaryItem(
-                    label = "Transactions",
-                    value = expenseCount.toString(),
-                    icon = Icons.Default.Receipt
-                )
+                    SummaryItem(
+                        label = "Transactions",
+                        value = expenseCount.toString(),
+                        icon = Icons.Default.Receipt
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+                ) {
+                Button(
+                    onClick = {
+                        addExpense()
+                    }
+                ) {
+                    Text("Add Expense")
+                }
+                OutlinedButton(
+                    onClick = {
+                        onNavigateReports()
+                    }
+                ) {
+                    Text("View Reports")
+                }
+            }
 
         }
     }
 }
+
 
 @Composable
 private fun SummaryItem(
@@ -565,7 +620,7 @@ private fun ExpenseItem(
                 }
 
                 Text(
-                    text = "₹${String.format("%.2f", expense.amount)}",
+                    text = "₹${formatAmountIndian(expense.amount)}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -573,116 +628,7 @@ private fun ExpenseItem(
         },
     )
     HorizontalDivider()
-//    Card(
-//        modifier = Modifier.fillMaxWidth(),
-//        colors = CardDefaults.cardColors(
-//            containerColor = MaterialTheme.colorScheme.surface
-//        ),
-//        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-//    ) {
-//        Row(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .padding(16.dp),
-//            horizontalArrangement = Arrangement.SpaceBetween,
-//            verticalAlignment = Alignment.CenterVertically
-//        ) {
-//            Row(
-//                verticalAlignment = Alignment.CenterVertically,
-//                modifier = Modifier.weight(1f)
-//            ) {
-//                Box(
-//                    modifier = Modifier
-//                        .size(40.dp)
-//                        .background(
-//                            MaterialTheme.colorScheme.secondaryContainer,
-//                            CircleShape
-//                        ),
-//                    contentAlignment = Alignment.Center
-//                ) {
-//                    Text(
-//                        text = expense.category.emoji,
-//                        style = MaterialTheme.typography.titleMedium
-//                    )
-//                }
-//
-//                Spacer(modifier = Modifier.width(12.dp))
-//
-//                Column(modifier = Modifier.weight(1f)) {
-//                    Text(
-//                        text = expense.title,
-//                        style = MaterialTheme.typography.bodyLarge,
-//                        fontWeight = FontWeight.Medium,
-//                        maxLines = 1
-//                    )
-//
-//                    if (expense.notes.isNotEmpty()) {
-//                        Text(
-//                            text = expense.notes,
-//                            style = MaterialTheme.typography.bodySmall,
-//                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-//                            maxLines = 1
-//                        )
-//                    }
-//
-//                    Text(
-//                        text = Instant.ofEpochMilli(expense.date)
-//                            .atZone(ZoneId.systemDefault())
-//                            .toLocalDateTime()
-//                            .format(DateTimeFormatter.ofPattern("HH:mm")),
-//                        style = MaterialTheme.typography.bodySmall,
-//                        color = MaterialTheme.colorScheme.onSurfaceVariant
-//                    )
-//                }
-//            }
-//
-//            Row(
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                Text(
-//                    text = "₹${String.format("%.2f", expense.amount)}",
-//                    style = MaterialTheme.typography.titleMedium,
-//                    fontWeight = FontWeight.Bold,
-//                    color = MaterialTheme.colorScheme.onSurface
-//                )
-//
-//                IconButton(
-//                    onClick = { showDeleteDialog = true },
-//                    modifier = Modifier.size(32.dp)
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Default.Delete,
-//                        contentDescription = "Delete",
-//                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-//                        modifier = Modifier.size(18.dp)
-//                    )
-//                }
-//            }
-//        }
-//
-//        if (expense.receiptImagePath != null) {
-//            Row(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(horizontal = 16.dp, vertical = 4.dp),
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                Spacer(modifier = Modifier.width(52.dp))
-//                Icon(
-//                    imageVector = Icons.Default.AttachFile,
-//                    contentDescription = "Has Receipt",
-//                    tint = MaterialTheme.colorScheme.primary,
-//                    modifier = Modifier.size(16.dp)
-//                )
-//                Spacer(modifier = Modifier.width(4.dp))
-//                Text(
-//                    text = "Receipt attached",
-//                    style = MaterialTheme.typography.bodySmall,
-//                    color = MaterialTheme.colorScheme.primary
-//                )
-//            }
-//        }
-//    }
+
 
     if (showDeleteDialog) {
         AlertDialog(

@@ -1,7 +1,6 @@
 package com.metapointer.expensetrackerapp.ui.screens.entry
 
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -22,9 +21,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.metapointer.expensetrackerapp.data.model.ExpenseCategory
+import com.metapointer.expensetrackerapp.utils.formatAmountIndian
 import kotlinx.coroutines.delay
 
 
@@ -48,29 +49,8 @@ fun ExpenseEntryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-//        // Top App Bar
-//        TopAppBar(
-//            title = {
-//                Text(
-//                    text = "Add Expense",
-//                    style = MaterialTheme.typography.titleLarge,
-//                    fontWeight = FontWeight.Medium
-//                )
-//            },
-//            navigationIcon = {
-//                IconButton(onClick = onNavigateBack) {
-//                    Icon(
-//                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-//                        contentDescription = "Back"
-//                    )
-//                }
-//            },
-//            colors = TopAppBarDefaults.topAppBarColors(
-//                containerColor = MaterialTheme.colorScheme.surface
-//            )
-//        )
 
         Column(
             modifier = Modifier
@@ -80,6 +60,14 @@ fun ExpenseEntryScreen(
         ) {
             // Today's Total Card
             TodayTotalCard(todayTotal = todayTotal)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Error/Success Messages
+            MessageDisplay(
+                uiState = uiState,
+                onClearError = viewModel::clearError
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -100,42 +88,35 @@ fun ExpenseEntryScreen(
                 uiState = uiState,
                 onSubmit = viewModel::addExpense
             )
-
-            // Error/Success Messages
-            MessageDisplay(
-                uiState = uiState,
-                onClearError = viewModel::clearError
-            )
         }
     }
 }
 
 @Composable
 private fun TodayTotalCard(todayTotal: Double) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Today's Total",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-            )
-            Text(
-                text = "₹${String.format("%.2f", todayTotal)}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            Column {
+                Text(
+                    text = "Today's total",
+                )
+                Text(
+                    text = "₹${formatAmountIndian(todayTotal)}",
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+            }
         }
+        Spacer(modifier = Modifier.height(16.dp))
+        HorizontalDivider()
     }
+
 }
 
 @Composable
@@ -147,6 +128,9 @@ private fun ExpenseFormFields(
     onNotesChanged: (String) -> Unit,
     onReceiptImageSelected: (String?) -> Unit
 ) {
+
+    val validationState = uiState.validationState
+
     // Title Field
     OutlinedTextField(
         value = uiState.title,
@@ -155,15 +139,28 @@ private fun ExpenseFormFields(
         placeholder = { Text("Enter expense title") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        isError = uiState.title.isBlank() && uiState.errorMessage != null,
-        supportingText = if (uiState.title.isBlank() && uiState.errorMessage != null) {
-            { Text("Title is required") }
-        } else null
+        isError = !validationState.titleValidation.isValid,
+        supportingText = {
+            validationState.titleValidation.errorMessage?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error
+                )
+            } ?: Text("${uiState.title.length}/50")
+        },
+        trailingIcon = {
+            if (!validationState.titleValidation.isValid) {
+                Icon(
+                    imageVector = Icons.Default.Error,
+                    contentDescription = "Error",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
     )
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    // Amount Field
     OutlinedTextField(
         value = uiState.amount,
         onValueChange = onAmountChanged,
@@ -182,22 +179,29 @@ private fun ExpenseFormFields(
             keyboardType = KeyboardType.Decimal,
             imeAction = ImeAction.Next
         ),
-        isError = (uiState.amount.toDoubleOrNull() == null && uiState.amount.isNotEmpty()) ||
-                (uiState.amount.isBlank() && uiState.errorMessage != null),
+        isError = !validationState.amountValidation.isValid,
         supportingText = {
-            when {
-                uiState.amount.isNotEmpty() && uiState.amount.toDoubleOrNull() == null ->
-                    Text("Please enter a valid amount")
-                uiState.amount.isBlank() && uiState.errorMessage != null ->
-                    Text("Amount is required")
-                else -> null
+            validationState.amountValidation.errorMessage?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        trailingIcon = {
+            if (!validationState.amountValidation.isValid) {
+                Icon(
+                    imageVector = Icons.Default.Error,
+                    contentDescription = "Error",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     )
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    // Category Selection
+    // Category Selection with validation
     CategorySelector(
         selectedCategory = uiState.selectedCategory,
         onCategorySelected = onCategorySelected
@@ -205,7 +209,7 @@ private fun ExpenseFormFields(
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    // Notes Field
+    // Notes Field with enhanced validation
     OutlinedTextField(
         value = uiState.notes,
         onValueChange = onNotesChanged,
@@ -214,12 +218,31 @@ private fun ExpenseFormFields(
         modifier = Modifier.fillMaxWidth(),
         minLines = 3,
         maxLines = 4,
-        supportingText = { Text("${uiState.notes.length}/100") }
+        isError = !validationState.notesValidation.isValid,
+        supportingText = {
+            if (!validationState.notesValidation.isValid) {
+                validationState.notesValidation.errorMessage?.let { error ->
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
+                Text(
+                    text = "${uiState.notes.length}/200",
+                    color = if (uiState.notes.length > 180) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+        }
     )
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    // Receipt Image Upload (Mock)
+    // Receipt Image Upload
     ReceiptImageUpload(
         receiptImagePath = uiState.receiptImagePath,
         onReceiptImageSelected = onReceiptImageSelected
@@ -285,15 +308,13 @@ private fun ReceiptImageUpload(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
+                4.dp
+            )
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (receiptImagePath != null) {
@@ -364,10 +385,8 @@ private fun SubmitButton(
     uiState: ExpenseEntryUiState,
     onSubmit: () -> Unit
 ) {
-    val isFormValid = uiState.title.isNotBlank() &&
-            uiState.amount.isNotBlank() &&
-            uiState.amount.toDoubleOrNull() != null &&
-            uiState.amount.toDoubleOrNull()!! > 0
+    val isFormValid = uiState.validationState.isFormValid
+
 
     Button(
         onClick = onSubmit,
@@ -460,6 +479,14 @@ private fun MessageDisplay(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun PreviewExpAdd() {
+    ReceiptImageUpload(
+        ""
+    ) {}
 }
 
 // Extension property for ExpenseCategory

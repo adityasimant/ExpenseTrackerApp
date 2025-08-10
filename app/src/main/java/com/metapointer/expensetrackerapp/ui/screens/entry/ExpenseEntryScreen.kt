@@ -10,14 +10,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,57 +45,142 @@ fun ExpenseEntryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val todayTotal by viewModel.todayTotal.collectAsState()
 
+    // Animation states
+    var showSuccessAnimation by remember { mutableStateOf(false) }
+    val successScale by animateFloatAsState(
+        targetValue = if (showSuccessAnimation) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "success_scale"
+    )
+
+    val successAlpha by animateFloatAsState(
+        targetValue = if (showSuccessAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "success_alpha"
+    )
+
     LaunchedEffect(uiState.isExpenseAdded) {
         if (uiState.isExpenseAdded) {
-            delay(1500) // Show success message for 1.5 seconds
+            showSuccessAnimation = true
+            delay(1800) // Show animation for 1.8 seconds
             viewModel.clearSuccessState()
             onNavigateBack()
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
-
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
-            // Today's Total Card
-            TodayTotalCard(todayTotal = todayTotal)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
+                // Today's Total Card
+                TodayTotalCard(todayTotal = todayTotal)
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // Error/Success Messages
-            MessageDisplay(
-                uiState = uiState,
-                onClearError = viewModel::clearError
-            )
+                // Error/Success Messages
+                MessageDisplay(
+                    uiState = uiState,
+                    onClearError = viewModel::clearError
+                )
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            // Form Fields
-            ExpenseFormFields(
-                uiState = uiState,
-                onTitleChanged = viewModel::onTitleChanged,
-                onAmountChanged = viewModel::onAmountChanged,
-                onCategorySelected = viewModel::onCategorySelected,
-                onNotesChanged = viewModel::onNotesChanged,
-                onReceiptImageSelected = viewModel::onReceiptImageSelected
-            )
+                // Form Fields
+                ExpenseFormFields(
+                    uiState = uiState,
+                    onTitleChanged = viewModel::onTitleChanged,
+                    onAmountChanged = viewModel::onAmountChanged,
+                    onCategorySelected = viewModel::onCategorySelected,
+                    onNotesChanged = viewModel::onNotesChanged,
+                    onReceiptImageSelected = viewModel::onReceiptImageSelected
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            // Submit Button
-            SubmitButton(
-                uiState = uiState,
-                onSubmit = viewModel::addExpense
+                // Submit Button
+                SubmitButton(
+                    uiState = uiState,
+                    onSubmit = {
+                        viewModel.addExpense()
+                    }
+                )
+            }
+        }
+
+        // Success Animation Overlay
+        if (showSuccessAnimation) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f * successAlpha)),
+                contentAlignment = Alignment.Center
+            ) {
+                SuccessAnimationContent(
+                    scale = successScale,
+                    alpha = successAlpha
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuccessAnimationContent(
+    scale: Float,
+    alpha: Float
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .scale(scale)
+            .alpha(alpha)
+    ) {
+        // Animated checkmark circle
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .background(
+                    color = Color(0xFF4CAF50),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Success",
+                tint = Color.White,
+                modifier = Modifier.size(40.dp)
             )
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Expense Added!",
+            style = MaterialTheme.typography.headlineSmall,
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Successfully saved to your records",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.8f),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -116,7 +208,6 @@ private fun TodayTotalCard(todayTotal: Double) {
         Spacer(modifier = Modifier.height(16.dp))
         HorizontalDivider()
     }
-
 }
 
 @Composable
@@ -128,7 +219,6 @@ private fun ExpenseFormFields(
     onNotesChanged: (String) -> Unit,
     onReceiptImageSelected: (String?) -> Unit
 ) {
-
     val validationState = uiState.validationState
 
     // Title Field
@@ -387,7 +477,6 @@ private fun SubmitButton(
 ) {
     val isFormValid = uiState.validationState.isFormValid
 
-
     Button(
         onClick = onSubmit,
         modifier = Modifier.fillMaxWidth(),
@@ -481,15 +570,7 @@ private fun MessageDisplay(
     }
 }
 
-@Preview
-@Composable
-private fun PreviewExpAdd() {
-    ReceiptImageUpload(
-        ""
-    ) {}
-}
-
-// Extension property for ExpenseCategory
+// Extension properties for ExpenseCategory
 val ExpenseCategory.displayName: String
     get() = when (this) {
         ExpenseCategory.STAFF -> "Staff"
@@ -506,3 +587,8 @@ val ExpenseCategory.emoji: String
         ExpenseCategory.UTILITY -> "⚡"
     }
 
+@Preview
+@Composable
+private fun PreviewSuccessAnimation() {
+    SuccessAnimationContent(scale = 1f, alpha = 1f)
+}

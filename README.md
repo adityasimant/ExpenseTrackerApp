@@ -6,8 +6,6 @@
 The Smart Daily Expense Tracker is a multi-screen app designed for small business owners to easily capture, view, analyze, and export their daily expenses. It addresses the common problem of expenses being lost on WhatsApp chats or paper, helping users maintain accurate cash flow records.
 The app is built with Jetpack Compose and follows a clean MVVM architecture for scalability and maintainability.
 
-## Use of AI
-I used AI tools like ChatGPT and GitHub Copilot to determine the optimal MVVM architecture for the module. AI also helped me optimize LazyColumn implementations for smooth scrolling and performance. I leveraged AI to write efficient SQL queries for Room DAO classes and to set up Navigation Compose for seamless screen transitions.
 
 
 ## Technical Implementation
@@ -19,22 +17,7 @@ I used AI tools like ChatGPT and GitHub Copilot to determine the optimal MVVM ar
 - Data Storage with Room database
 - Dependency Injection with Hilt (Dagger)
 
-## Prompt Logs
-1. Determining Architecture Setup:
-   ```
-    I am tasked with making a module for google, I have to determine the architecture based on usecases. Help me determining a clean MVVM architecture for the application with the following usecases according to the best practices that match the googles code quality and sclability. We have to use Navigation compose for navigations and have to use nested graphs. We will setup DI modules with Hilt. Now with this context we need to layer the following the SOLID principle and seperating layers based on their usecases. Note that this app will be scaled later and will have lot of configs for UI and data. Feel free to ask clarifying questions before proceeding.
 
-2. Optimizing LazyColumn Performance
-   ```
-   My LazyColumn in Jetpack Compose is laggy when displaying many expense items. How can I optimize it for better scrolling performance?
-
-3. Writing SQL Queries for DAOs
-   ```
-   We have cases of fetching reports of last 7 days or based on date ranges. We might also need to group and sort data later. Help me define a DAO interface for this entity so that I can complete all the usecases
-
-4. Validation Stragergy
-   ```
-   I have a screen with many inputs, how can I validate inputs with single data UI state. Also whats the best practises to validate these data with ViewModels.
    
 ##  Implemented Features
 
